@@ -1,7 +1,5 @@
-CROSS_COMPILE = /home/einsam/p/riscv-operating-system-mooc/tools/gcc/bin/riscv64-unknown-elf-
-
-#CROSS_COMPILE = riscv64-linux-gnu-
-CFLAGS = -nostdlib -fno-builtin -march=rv64ima -mabi=lp64 -g -Wall
+CROSS_COMPILE = riscv64-elf-
+CFLAGS = -nostdlib -mcmodel=medany -fno-builtin -march=rv64ima -mabi=lp64 -g -Wall
 
 QEMU = qemu-system-riscv64
 QFLAGS = -nographic -smp 1 -machine virt -bios none
@@ -15,7 +13,8 @@ SRCS_ASM = \
 	start.S
 
 SRCS_C = \
-	kernel.c
+	kernel.c \
+	uart.c
 
 OBJS = $(SRCS_ASM:.S=.o)
 OBJS += $(SRCS_C:.c=.o)
@@ -45,7 +44,7 @@ debug: all
 	@echo "Press Ctrl-C and then input 'quit' to exit GDB and QEMU"
 	@echo "-------------------------------------------------------"
 	@${QEMU} ${QFLAGS} -kernel os.elf -s -S &
-	@${GDB} os.elf -q -x ./gdbinit
+	@${GDB} os.elf -q -x ./gdbinit -tui
 
 .PHONY : code
 code: all
