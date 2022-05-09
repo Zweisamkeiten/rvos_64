@@ -10,11 +10,14 @@ OBJCOPY = ${CROSS_COMPILE}objcopy
 OBJDUMP = ${CROSS_COMPILE}objdump
 
 SRCS_ASM = \
-	start.S
+	start.S \
+	mem.S \
 
 SRCS_C = \
 	kernel.c \
-	uart.c
+	uart.c \
+	printf.c \
+	alloc.c \
 
 OBJS = $(SRCS_ASM:.S=.o)
 OBJS += $(SRCS_C:.c=.o)
