@@ -19,4 +19,7 @@ extern void panic(char *s);
 extern void *malloc(size_t size);
 extern void free(void *ptr);
 
+extern int  task_create(void (*task)(void));
+extern void task_delay(volatile int count);
+
 #endif /* __OS_H__ */
