@@ -1,10 +1,9 @@
 # This Code dervied from RVOS 
 # https://github.com/plctlab/riscv-operating-system-mooc
 
-#include "platform.h"
-
   # size of each hart's stack is 1024 bytes
   .equ  STACK_SIZE, 2048
+  .equ  MAXNUM_CPU, 8
 
 
   .global _start

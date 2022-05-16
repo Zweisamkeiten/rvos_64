@@ -5,6 +5,7 @@ extern void page_init(void);
 extern void page_test(void);
 extern void sched_init(void);
 extern void schedule(void);
+extern void user_init(void);
 
 void start_kernel(void)
 {
@@ -15,7 +16,15 @@ void start_kernel(void)
   page_test();
 
   sched_init();
-  schedule();
+
+  user_init();
+
+  while (1) {
+    uart_puts("OS: Activate next task\n");
+    schedule();
+    uart_puts("OS: Back to OS\n");
+    uart_puts("\n");
+  }
 
   uart_puts("World not go here!\n");
   while (1) {
