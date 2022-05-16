@@ -9,53 +9,59 @@ CC = ${CROSS_COMPILE}gcc
 OBJCOPY = ${CROSS_COMPILE}objcopy
 OBJDUMP = ${CROSS_COMPILE}objdump
 
-SRCS_ASM = \
-	start.S \
-	mem.S \
-	entry.S \
+# path macros
+BIN_PATH := bin
+OBJ_PATH := obj
+SRC_PATH := src
 
-SRCS_C = \
-	kernel.c \
-	uart.c \
-	printf.c \
-	alloc.c \
-	sched.c \
-	user.c \
+WORK_DIR  = $(shell pwd)
 
-OBJS = $(SRCS_ASM:.S=.o)
-OBJS += $(SRCS_C:.c=.o)
+INC_PATH := $(WORK_DIR)/include $(INC_PATH)
+INCLUDES = $(addprefix -I, $(INC_PATH))
+CFLAGS := $(INCLUDES) $(CFLAGS)
 
-.DEFAULT_GOAL := all
-all: os.elf
+SRC := $(foreach x, $(SRC_PATH), $(wildcard $(addprefix $(x)/*,.c*)))
+SRC += $(foreach x, $(SRC_PATH), $(wildcard $(addprefix $(x)/*,.S*)))
+OBJS := $(addprefix $(OBJ_PATH)/, $(addsuffix .o, $(notdir $(basename $(SRC)))))
+
+MAIN_OBJ := $(OBJ_PATH)/start.o
+LD_OBJS := $(filter-out $(MAIN_OBJ),$(OBJS))
+
+default: makedir all
+all: $(BIN_PATH)/os.elf
 
 # start.o must be the first in dependency
-os.elf: ${OBJS}
-	${CC} ${CFLAGS} -T os.ld -o os.elf $^
-	${OBJCOPY} -O binary os.elf os.bin
+$(BIN_PATH)/os.elf: ${OBJS} $(MAIN_OBJ)
+	${CC} ${CFLAGS} -T os.ld -o $@ $(MAIN_OBJ) $(LD_OBJS)
+	${OBJCOPY} -O binary $@ $(BIN_PATH)/os.bin
 
-%.o : %.c
+$(OBJ_PATH)/%.o : $(SRC_PATH)/%.c
 	${CC} ${CFLAGS} -c -o $@ $<
 
-%.o : %.S
+$(OBJ_PATH)/%.o : $(SRC_PATH)/%.S
 	${CC} ${CFLAGS} -c -o $@ $<
 
 run: all
 	@${QEMU} -M ? | grep virt >/dev/null || exit
 	@echo "Press Ctrl-A and then X to exit QEMU"
 	@echo "------------------------------------"
-	@${QEMU} ${QFLAGS} -kernel os.elf
+	@${QEMU} ${QFLAGS} -kernel $(BIN_PATH)/os.elf
 
 .PHONY : debug
 debug: all
 	@echo "Press Ctrl-C and then input 'quit' to exit GDB and QEMU"
 	@echo "-------------------------------------------------------"
-	@${QEMU} ${QFLAGS} -kernel os.elf -s -S &
-	@${GDB} os.elf -q -x ./gdbinit -tui
+	@${QEMU} ${QFLAGS} -kernel $(BIN_PATH)/os.elf -s -S &
+	@${GDB} $(BIN_PATH)/os.elf -q -x ./gdbinit -tui
 
 .PHONY : code
 code: all
-	@${OBJDUMP} -S os.elf | less
+	@${OBJDUMP} -S $(BIN_PATH)/os.elf | less
 
 .PHONY : clean
 clean:
-	rm -rf *.o *.bin *.elf
+	rm -rf $(OBJ_PATH)/*.o $(BIN_PATH)/*
+
+.PHONY: makedir
+makedir:
+	@mkdir -p $(BIN_PATH) $(OBJ_PATH) ./include $(SRC_PATH)
