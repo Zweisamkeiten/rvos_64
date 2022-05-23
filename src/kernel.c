@@ -28,6 +28,7 @@ void start_kernel(void)
 
   user_init();
 
+  schedule();
   /* while (1) { */
   /*   uart_puts("OS: Activate next task\n"); */
   /*   schedule(); */

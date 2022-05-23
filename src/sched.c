@@ -2,9 +2,11 @@
 
 /* defined in entry.S */
 extern void switch_to(struct context *next);
+extern void timer_load(int interval);
 
 #define MAX_TASKS 10
 #define STACK_SIZE 1024
+#define TIMER_INTERVAL CLINT_TIMEBASE_FREQ
 uint8_t task_stack[MAX_TASKS][STACK_SIZE];
 struct context ctx_os;
 struct context ctx_tasks[MAX_TASKS];
@@ -35,6 +37,7 @@ void schedule()
 
 	if (_current == -1) {
 		_current = (_current + 1) % _top;
+		timer_load(TIMER_INTERVAL * tasks[_current].timeslice);
 		struct context *next = &(ctx_tasks[_current]);
 		switch_to(next);
 	}
@@ -48,6 +51,7 @@ void schedule()
 		if (tasks[next_task].priority > tasks[_current].priority) 
 			_current = -1;
 		_current = (_current + 1) % _top;
+		timer_load(TIMER_INTERVAL * tasks[_current].timeslice);
 		task_go(_current);
 	}
 }
@@ -74,14 +78,15 @@ void task_go(int i) {
  * 	0: success
  * 	-1: if error occured
  */
-int task_create(void (*task)(void* param), void *param, uint8_t priority)
+int task_create(void (*task)(void* param), void *param, uint8_t priority, uint8_t timeslice)
 {
 	if (_top < MAX_TASKS) {
 
 		if (_top == 0) {
 			ctx_tasks[_top].sp = (reg_t) &task_stack[_top][STACK_SIZE - 1];
-			ctx_tasks[_top].ra = (reg_t) task;
+			ctx_tasks[_top].epc = (reg_t) task;
 			tasks[_top].priority = priority;
+			tasks[_top].timeslice = timeslice;
 			tasks[_top].state = 'r';
 		}
 		else {
@@ -91,12 +96,14 @@ int task_create(void (*task)(void* param), void *param, uint8_t priority)
 				if (tasks[i].priority <= priority) break;
 
 				ctx_tasks[i+1].sp = ctx_tasks[i].sp;
-				ctx_tasks[i+1].ra = ctx_tasks[i].ra;
+				ctx_tasks[i+1].epc = ctx_tasks[i].epc;
+				tasks[i+1].timeslice = tasks[i].timeslice;
 				tasks[i+1].priority = tasks[i].priority;
 			}
 			ctx_tasks[i+1].sp = (reg_t) &task_stack[_top][STACK_SIZE - 1];
-			ctx_tasks[i+1].ra = (reg_t) task;
+			ctx_tasks[i+1].epc = (reg_t) task;
 			tasks[i+1].priority = priority;
+			tasks[i+1].timeslice = timeslice;
 			tasks[i+1].state = 'r';
 		}
 
@@ -119,7 +126,9 @@ void task_delay(volatile int count)
 void task_exit(void)
 {
 	tasks[_current].state = 's';
-	task_os();
+	/* trigger a machine-level software interrupt */
+	int id = r_mhartid();
+	*(uint32_t*)CLINT_MSIP(id) = 1;
 }
 
 

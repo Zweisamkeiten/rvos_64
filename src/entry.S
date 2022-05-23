@@ -103,6 +103,10 @@ trap_vector:
 	csrr	t6, mscratch	# read t6 back from mscratch
 	sd	t6, 240(t5)	# save t6 with t5 as base
 
+	# save mepc to context of current task
+	csrr	a0, mepc
+	sd	a0, 248(t5)
+
 	# Restore the context pointer into mscratch
 	csrw	mscratch, t5
 
@@ -127,19 +131,12 @@ trap_vector:
 .globl switch_to
 .align 4
 switch_to:
-	csrrw	t6, mscratch, t6	# swap t6 and mscratch
-	beqz	t6, 1f			# Notice: previous task may be NULL
-	reg_save t6			# save context of prev task
-
-	# Save the actual t6 register, which we swapped into
-	# mscratch
-	mv	t5, t6		# t5 points to the context of current task
-	csrr	t6, mscratch	# read t6 back from mscratch
-	sd	t6, 240(t5)	# save t6 with t5 as base
-
-1:
 	# switch mscratch to point to the context of the next task
 	csrw	mscratch, a0
+
+	# set mepc to the pc of the next task
+	ld	a1, 248(a0)
+	csrw	mepc, a1
 
 	# Restore all GP registers
 	# Use t6 to point to the context of the new task
@@ -147,7 +144,7 @@ switch_to:
 	reg_restore t6
 
 	# Do actual context switching.
-	ret
+	mret
 
 .end
 
