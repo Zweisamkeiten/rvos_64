@@ -103,6 +103,10 @@ void uart_init()
    */
   lcr = 0;
   uart_write_reg(LCR, lcr | (3 << 0));
+
+  // 恢复启用 uart 中断
+	uint8_t ier = uart_read_reg(IER);
+	uart_write_reg(IER, ier | (1 << 0));
 }
 
 int uart_putc(char ch)
@@ -118,12 +122,28 @@ void uart_puts(char *s)
   }
 }
 
-int uart_getc()
+int uart_getc(void)
 {
-  while ((uart_read_reg(LSR) & LSR_RX_READY) == 0);
-  int ch = uart_read_reg(RHR);
-  if (ch == '\r') ch = '\n';
-  uart_putc(ch);
-  return ch;
+	if (uart_read_reg(LSR) & LSR_RX_READY){
+		return uart_read_reg(RHR);
+	} else {
+		return -1;
+	}
+}
+
+/*
+ * handle a uart interrupt, raised because input has arrived, called from trap.c.
+ */
+void uart_isr(void)
+{
+	while (1) {
+		int c = uart_getc();
+		if (c == -1) {
+			break;
+		} else {
+			uart_putc((char)c);
+			uart_putc('\n');
+		}
+	}
 }
 

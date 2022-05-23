@@ -18,11 +18,6 @@ struct task tasks[MAX_TASKS];
 int _top = 0;
 int _current = -1;
 
-static void w_mscratch(reg_t x)
-{
-	asm volatile("csrw mscratch, %0" : : "r" (x));
-}
-
 void sched_init()
 {
 	w_mscratch((reg_t) &ctx_os); // 初始化mscratch在ctx_os的原因是它不是一个任务，因此如果不保存内容在里面，跳转ctx_os会无意义

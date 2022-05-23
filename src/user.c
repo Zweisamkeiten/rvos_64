@@ -2,6 +2,8 @@
 
 #define DELAY 1000
 
+extern void trap_test(void);
+
 void os_kernel() {
   task_os();
 }
@@ -13,6 +15,9 @@ void user_task0(void* param)
   os_kernel();
   while (1) {
     uart_puts("Task 0: Running...\n");
+
+    /* trap_test(); */
+
     task_delay(DELAY);
     os_kernel();
   }
