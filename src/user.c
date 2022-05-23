@@ -8,7 +8,9 @@ struct userdata {
 	char *str;
 };
 
-struct userdata person = {0, "Jack"};
+struct userdata person1 = {0, "A"};
+struct userdata person2 = {0, "B"};
+struct userdata person3 = {0, "C"};
 
 void timer_func(void *arg)
 {
@@ -30,15 +32,15 @@ void os_kernel() {
 void user_task0(void* param)
 {
   uart_puts("Task 0: Created!\n");
-	struct timer *t1 = timer_create(timer_func, &person, 3);
+	timer *t1 = timer_create(timer_func, &person1, 5);
 	if (NULL == t1) {
 		printf("timer_create() failed!\n");
 	}
-	struct timer *t2 = timer_create(timer_func, &person, 5);
+	timer *t2 = timer_create(timer_func, &person2, 3);
 	if (NULL == t2) {
 		printf("timer_create() failed!\n");
 	}
-	struct timer *t3 = timer_create(timer_func, &person, 7);
+	timer *t3 = timer_create(timer_func, &person3, 7);
 	if (NULL == t3) {
 		printf("timer_create() failed!\n");
 	}
