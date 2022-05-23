@@ -1,6 +1,8 @@
 #include "os.h"
 
-#define DELAY 1000
+#define DELAY 4000
+
+#define USE_LOCK
 
 extern void trap_test(void);
 
@@ -14,50 +16,57 @@ void user_task0(void* param)
   /* uart_puts("Task 0: Now, return to kernel mode!\n"); */
   /* os_kernel(); */
   while (1) {
-    uart_puts("Task 0: Running...\n");
-
-    /* trap_test(); */
-
-    task_delay(DELAY);
-    /* os_kernel(); */
+#ifdef USE_LOCK
+		spin_lock();
+#endif
+		uart_puts("Task 0: Begin ... \n");
+		for (int i = 0; i < 5; i++) {
+			uart_puts("Task 0: Running... \n");
+			task_delay(DELAY);
+		}
+		uart_puts("Task 0: End ... \n");
+#ifdef USE_LOCK
+		spin_unlock();
+#endif
   }
 }
 
 void user_task1(void* param)
 {
   uart_puts("Task 1: Created!\n");
-  /* uart_puts("Task 1: Now, return to kernel mode!\n"); */
-  /* os_kernel(); */
   while (1) {
-    uart_puts("Task 1: Running...\n");
-    task_delay(DELAY);
-    /* os_kernel(); */
+		uart_puts("Task 1: Begin ... \n");
+		for (int i = 0; i < 5; i++) {
+			uart_puts("Task 1: Running... \n");
+			task_delay(DELAY);
+		}
+		uart_puts("Task 1: End ... \n");
   }
 }
 
 void user_task2(void* param)
 {
   uart_puts("Task 2: Created!\n");
-  /* uart_puts("Task 2: Now, return to kernel mode!\n"); */
-  /* os_kernel(); */
   while (1) {
-    uart_puts("Task 2: Running...\n");
-    task_delay(DELAY);
-    /* uart_puts("Task 2: Exiting...\n"); */
-    /* task_exit(); */
+		uart_puts("Task 2: Begin ... \n");
+		for (int i = 0; i < 5; i++) {
+			uart_puts("Task 2: Running... \n");
+			task_delay(DELAY);
+		}
+		uart_puts("Task 2: End ... \n");
   }
 }
 
 void user_task3(void* param)
 {
   uart_puts("Task 3: Created!\n");
-  /* uart_puts("Task 3: Now, return to kernel mode!\n"); */
-  /* os_kernel(); */
   while (1) {
-    uart_puts("Task 3: Running...\n");
-    task_delay(DELAY);
-    /* uart_puts("Task 3: Exiting...\n"); */
-    /* task_exit(); */
+		uart_puts("Task 3: Begin ... \n");
+		for (int i = 0; i < 5; i++) {
+			uart_puts("Task 3: Running... \n");
+			task_delay(DELAY);
+		}
+		uart_puts("Task 3: End ... \n");
   }
 }
 

@@ -36,4 +36,8 @@ extern void task_exit(void);
 extern int plic_claim(void);
 extern void plic_complete(int irq);
 
+/* lock */
+extern int spin_lock(void);
+extern int spin_unlock(void);
+
 #endif /* __OS_H__ */
