@@ -1,5 +1,5 @@
 CROSS_COMPILE = riscv64-elf-
-CFLAGS = -nostdlib -mcmodel=medany -fno-builtin -march=rv64ima -mabi=lp64 -g -Wall
+CFLAGS = -nostdlib -mcmodel=medany -fno-builtin -march=rv64gc -mabi=lp64 -g -Wall
 
 QEMU = qemu-system-riscv64
 QFLAGS = -nographic -smp 1 -machine virt -bios none
