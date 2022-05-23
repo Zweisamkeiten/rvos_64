@@ -32,7 +32,11 @@ void timer_init()
 void timer_handler() 
 {
 	_tick++;
-	printf("tick: %d\n", _tick);
+	int hour, minute, second;
+	second = _tick % 60;
+	minute = _tick / 60 % 60;
+	hour = _tick / 60 / 60 % 60;
+	printf("\r%02d:%02d:%02d", hour, minute, second);
 
 	timer_load(TIMER_INTERVAL);
 }

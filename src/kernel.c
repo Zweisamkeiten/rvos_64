@@ -28,12 +28,12 @@ void start_kernel(void)
 
   user_init();
 
-  while (1) {
-    uart_puts("OS: Activate next task\n");
-    schedule();
-    uart_puts("OS: Back to OS\n");
-    uart_puts("\n");
-  }
+  /* while (1) { */
+  /*   uart_puts("OS: Activate next task\n"); */
+  /*   schedule(); */
+  /*   uart_puts("OS: Back to OS\n"); */
+  /*   uart_puts("\n"); */
+  /* } */
 
   uart_puts("World not go here!\n");
   while (1) {
