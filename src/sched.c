@@ -9,9 +9,11 @@ extern void timer_load(int interval);
 #define TIMER_INTERVAL CLINT_TIMEBASE_FREQ
 uint8_t task_stack[MAX_TASKS][STACK_SIZE];
 struct context ctx_os;
+uint8_t os_stack[STACK_SIZE];
 struct context ctx_tasks[MAX_TASKS];
 struct context *ctx_now;
 struct task tasks[MAX_TASKS];
+int delay[MAX_TASKS];
 
 /*
  * _top is used to mark the max available position of ctx_tasks
@@ -23,6 +25,12 @@ int _current = -1;
 void sched_init()
 {
 	w_mscratch((reg_t) &ctx_os); // 初始化mscratch在ctx_os的原因是它不是一个任务，因此如果不保存内容在里面，跳转ctx_os会无意义
+
+	ctx_os.sp = (reg_t) &os_stack[STACK_SIZE - 1];
+	ctx_os.epc = (reg_t) task_os;
+
+	/* enable machine-mode software interrupts. */
+	w_mie(r_mie() | MIE_MSIE);
 }
 
 /*
@@ -35,33 +43,61 @@ void schedule()
 		return;
 	}
 
-	if (_current == -1) {
-		_current = (_current + 1) % _top;
-		timer_load(TIMER_INTERVAL * tasks[_current].timeslice);
-		struct context *next = &(ctx_tasks[_current]);
-		switch_to(next);
+	_current = (_current + 1) % _top;
+	if (tasks[_current].state == 'w') {
+		int i = _current;
+		do {
+			if (tasks[i].state != 'w') break;
+			i = (i + 1) % _top;
+		} while (i != _current);
+		if (i == _current) switch_to(&ctx_os);
 	}
-	else {
-		int next_task = (_current + 1) % _top;
+	struct context *next = &(ctx_tasks[_current]);
+	switch_to(next);
+	/* if (_current == -1) { */
+	/* 	_current = (_current + 1) % _top; */
+	/* 	if (tasks[_current].state == 'w') { */
+	/* 		int i = _current; */
+	/* 		do { */
+	/* 			if (tasks[i].state != 'w') break; */
+	/* 			i = (i + 1) % _top; */
+	/* 		} while (i != _current); */
+	/* 		if (i == _current) switch_to(&ctx_os); */
+	/* 	} */
+	/* 	timer_load(TIMER_INTERVAL * tasks[_current].timeslice); */
+	/* 	struct context *next = &(ctx_tasks[_current]); */
+	/* 	switch_to(next); */
+	/* } */
+	/* else { */
+	/* 	int next_task = (_current + 1) % _top; */
 
-		while (tasks[next_task].state == 's') {
-			_current = (_current + 1) % _top;
-			next_task = (_current + 1) % _top;
-		}
-		if (tasks[next_task].priority > tasks[_current].priority) 
-			_current = -1;
-		_current = (_current + 1) % _top;
-		timer_load(TIMER_INTERVAL * tasks[_current].timeslice);
-		task_go(_current);
-	}
+	/* 	while (tasks[next_task].state != 'r') { */
+	/* 		_current = (_current + 1) % _top; */
+	/* 		next_task = (_current + 1) % _top; */
+	/* 	} */
+	/* 	if (tasks[next_task].priority > tasks[_current].priority) */ 
+	/* 		_current = -1; */
+	/* 	_current = (_current + 1) % _top; */
+
+	/* 	if (tasks[_current].state == 'w') { */
+	/* 		int i = _current; */
+	/* 		do { */
+	/* 			if (tasks[i].state != 'w') break; */
+	/* 			i = (i + 1) % _top; */
+	/* 		} while (i != _current); */
+	/* 		if (i == _current) switch_to(&ctx_os); */
+	/* 	} */
+
+	/* 	timer_load(TIMER_INTERVAL * tasks[_current].timeslice); */
+	/* 	task_go(_current); */
+	/* } */
 }
 
 /* DESCRIPTION
  * switch back to os
  */
 void task_os() {
-	ctx_now = &ctx_os;
-	switch_to(ctx_now);
+	while (1) {}
 }
 
 // switch to task[i]
@@ -115,12 +151,42 @@ int task_create(void (*task)(void* param), void *param, uint8_t priority, uint8_
 }
 
 /*
+ * DESCRIPTION
+ * 	task_yield()  causes the calling task to relinquish the CPU and a new 
+ * 	task gets to run.
+ */
+void task_yield()
+{
+	/* trigger a machine-level software interrupt */
+	int id = r_mhartid();
+	*(uint32_t*)CLINT_MSIP(id) = 1;
+}
+
+void task_reready(void *arg)
+{
+	if (NULL == arg)
+		return;
+	tasks[*(int *)arg].state = 'r';
+	printf("task reready\n");
+}
+
+/*
  * a very rough implementaion, just to consume the cpu
  */
-void task_delay(volatile int count)
+void task_delay(uint32_t tick)
 {
-	count *= 50000;
-	while (count--);
+	// 移出操作
+	tasks[_current].state = 'w';
+	delay[_current] = _current;
+
+	// 移入操作
+	timer *t1 = timer_create(task_reready, &(delay[_current]), tick);
+	if (NULL == t1) {
+		printf("timer_create() failed!\n");
+	}
+
+	task_yield();
+
 }
 
 void task_exit(void)

@@ -30,7 +30,8 @@ struct task {
 extern void task_os();
 extern void task_go(int n);
 extern int  task_create(void (*task)(void* param), void *param, uint8_t priority, uint8_t timeslice);
-extern void task_delay(volatile int count);
+extern void task_delay(uint32_t tick);
+extern void task_yield();
 extern void task_exit(void);
 
 extern int plic_claim(void);
